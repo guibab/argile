@@ -1,6 +1,5 @@
 # Argile
 
-[![N|Solid](https://cldup.com/dTxpPi9lDf.thumb.png)](https://nodesource.com/products/nsolid)
 
 **Argile** is a maya plugin and python script used for postSculpt.
 
