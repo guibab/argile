@@ -18,6 +18,7 @@ from Qt import QtGui, QtCore, QtWidgets, QtCompat
 from Qt.QtWidgets import QDialog
 
 from . import extraWidgets, argileAddPose, storeXml
+#reload (storeXml)
 #reload (extraWidgets)
 #reload(blurAddPose)
 
@@ -433,7 +434,8 @@ class ArgileDeformDialog(QDialog):
 			first = True
 			selectedItems = self.uiFramesTW.selectedItems() 
 			for item in selectedItems: 
-				indexFrame = self.uiFramesTW.indexOfTopLevelItem (item)	
+				#indexFrame = self.uiFramesTW.indexOfTopLevelItem (item)	
+				indexFrame = self.uiFramesTW.indexFromItem(item).row()
 				self.blurTimeSlider.listKeys [indexFrame].select (addSel = not first, selectInTree = False)	
 				first=False
 	
@@ -496,7 +498,20 @@ class ArgileDeformDialog(QDialog):
 			
 			vh = self.uiFramesTW.header ()
 			vh.setStretchLastSection(False)
-			vh.setResizeMode(QtWidgets.QHeaderView.Stretch)		
+			
+			QtCompat.setSectionResizeMode(vh, QtWidgets.QHeaderView.Stretch)
+			QtCompat.setSectionResizeMode(vh,0, QtWidgets.QHeaderView.Stretch)
+			self.uiFramesTW.setColumnWidth (1,20)
+			QtCompat.setSectionResizeMode(vh,1, QtWidgets.QHeaderView.Fixed)
+			self.uiFramesTW.setColumnWidth (2,50)
+			QtCompat.setSectionResizeMode(vh,2, QtWidgets.QHeaderView.Fixed)
+			self.uiFramesTW.setColumnWidth (3,50)
+			QtCompat.setSectionResizeMode(vh,3, QtWidgets.QHeaderView.Fixed)
+			cmds.evalDeferred (partial (self.uiFramesTW.setColumnWidth,1,20))
+			cmds.evalDeferred (partial (self.uiFramesTW.setColumnWidth,2,50))
+			cmds.evalDeferred (partial (self.uiFramesTW.setColumnWidth,3,50))			
+			"""
+			vh.setResizeMode(QtWidgets.QHeaderView.Stretch)	
 			vh.setResizeMode(0,QtWidgets.QHeaderView.Stretch) 
 			self.uiFramesTW.setColumnWidth (1,20)
 			vh.setResizeMode(1,QtWidgets.QHeaderView.Fixed) 
@@ -507,6 +522,7 @@ class ArgileDeformDialog(QDialog):
 			cmds.evalDeferred (partial (self.uiFramesTW.setColumnWidth,1,20))
 			cmds.evalDeferred (partial (self.uiFramesTW.setColumnWidth,2,50))
 			cmds.evalDeferred (partial (self.uiFramesTW.setColumnWidth,3,50))
+			"""
 
 #        vv.setResizeMode(QtWidgets.QHeaderView.Stretch)
 
@@ -559,15 +575,14 @@ class ArgileDeformDialog(QDialog):
 
 			vh = self.uiPosesTW.header ()
 			vh.setStretchLastSection(False)
-			vh.setResizeMode(QtWidgets.QHeaderView.Stretch)		
-			vh.setResizeMode(0,QtWidgets.QHeaderView.Stretch) 
+			QtCompat.setSectionResizeMode(vh, QtWidgets.QHeaderView.Stretch)
+			QtCompat.setSectionResizeMode(vh,0, QtWidgets.QHeaderView.Stretch)
 			self.uiPosesTW.setColumnWidth (1,50)
-			vh.setResizeMode(1,QtWidgets.QHeaderView.Fixed) 
+			QtCompat.setSectionResizeMode(vh,1, QtWidgets.QHeaderView.Fixed)
 			self.uiPosesTW.setColumnWidth (2,50)
-			vh.setResizeMode(2,QtWidgets.QHeaderView.Fixed) 
+			QtCompat.setSectionResizeMode(vh,2, QtWidgets.QHeaderView.Fixed)
 			cmds.evalDeferred (partial (self.uiPosesTW.setColumnWidth,1,50))
 			cmds.evalDeferred (partial (self.uiPosesTW.setColumnWidth,2,50))
-
 		
 		if len (listPoses) > 0 :
 			if selectLast : self.uiPosesTW.setCurrentItem(channelItem )					

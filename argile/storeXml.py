@@ -2,7 +2,7 @@ from Qt import QtGui, QtCore, QtWidgets, QtCompat
 from Qt.QtWidgets import QDialog
 from utils import toPyObject, getUiFile
 
-from . import extraWidgets
+from . import extraWidgets, filepickerwidget
 import codecs, re
 import os
 
@@ -34,7 +34,7 @@ class StoreXml(QDialog):
 			self.storewin = True
 			self.uiDoStoreBTN.setText ("store xml")
 			self.uiXmlStoreFile.pyOpenFile = False
-			self.uiXmlStoreFile.pyCaption = QtCore.QString(u'Store xml...')
+			self.uiXmlStoreFile.pyCaption = u'Store xml...' #QtCore.QString(u'Store xml...')
 			self.uiDoStoreBTN.setEnabled (False)
 			self.setWindowTitle ("Store xml file")		
 
@@ -42,7 +42,7 @@ class StoreXml(QDialog):
 			self.storewin = False
 			self.uiDoStoreBTN.setText ("restore selected frames")
 			self.uiXmlStoreFile.pyOpenFile = True
-			self.uiXmlStoreFile.pyCaption = QtCore.QString(u'select file to load from...')			
+			self.uiXmlStoreFile.pyCaption = u'select file to load from...'#QtCore.QString(u'select file to load from...')			
 			self.setWindowTitle ("Restore from xml file")		
 
 
@@ -56,6 +56,9 @@ class StoreXml(QDialog):
 		# fill the tree of frames
 
 		dicVal = {"blurNode" : blurNode}
+		listPoses = cmds.blurSculpt (blurNode,query = True, listPoses=True)        
+		if not listPoses : return
+		
 		posesIndices = map(int,cmds.getAttr  (blurNode+".poses",mi=True))
 
 		# first store positions
@@ -73,7 +76,7 @@ class StoreXml(QDialog):
 				frame = cmds.getAttr ("{blurNode}.poses[{indPose}].deformations[{frameInd}].frame".format (**dicVal))
 				mvtIndices =  cmds.getAttr ("{blurNode}.poses[{indPose}].deformations[{frameInd}].vectorMovements".format (**dicVal), mi=True)
 
-				frameItem =  QtGui.QTreeWidgetItem()
+				frameItem =  QtWidgets.QTreeWidgetItem()
 				frameItem.setText (0, str(blurNode))
 				frameItem.setText (1, str(thePose))
 				frameItem.setText (2, str(frame))
@@ -109,9 +112,13 @@ class StoreXml(QDialog):
 		selectedItems = self.uiAllFramesTW.selectedItems () 
 		dicFrames = {}
 		listPoses = []
-		for frameItem  in  selectedItems:
-			frame_tag = frameItem.data (0, QtCore.Qt.UserRole).toPyObject()
-			pose_tag = frameItem.data (1, QtCore.Qt.UserRole).toPyObject()
+		for frameItem in  selectedItems:
+			#frame_tag = frameItem.data (0, QtCore.Qt.UserRole)#.toPyObject()
+			#pose_tag = frameItem.data (1, QtCore.Qt.UserRole)#.toPyObject()
+			frameKey = frameItem.data (0, QtCore.Qt.UserRole)#.toPyObject()
+			frame_tag = self.dicTag [frameKey]
+			poseKey = frameItem.data (1, QtCore.Qt.UserRole)#.toPyObject()
+			pose_tag = self.dicTag [poseKey]			
 			poseName = pose_tag .get ("poseName")
 
 			if poseName not in dicFrames :
@@ -248,6 +255,7 @@ class StoreXml(QDialog):
 
 
 	def refreshTreeFromRoot (self, root) :
+		self.dicTag = {}
 		for blurNode_tag in root.getchildren():
 			blurName = blurNode_tag.get ("name")
 			for pose_tag in blurNode_tag.getchildren():
@@ -257,7 +265,7 @@ class StoreXml(QDialog):
 					frame = float(frame_tag .get ("frame") )
 					vector_tag = frame_tag.getchildren ()[0]
 
-					frameItem =  QtGui.QTreeWidgetItem()
+					frameItem =  QtWidgets.QTreeWidgetItem()
 					frameItem.setText (0, str(blurName))
 					frameItem.setText (1, str(poseName))
 					frameItem.setText (2, str(frame))
@@ -265,9 +273,13 @@ class StoreXml(QDialog):
 						frameItem.setText (3, u"\u00D8")
 
 					toAdd.append ((frame, frameItem))
-
-					frameItem.setData (0, QtCore.Qt.UserRole, frame_tag) 
-					frameItem.setData (1, QtCore.Qt.UserRole, pose_tag) 
+					
+					frameKey = "_".join ([str(blurName),str(poseName), str(frame), "frame" ])
+					self.dicTag [frameKey] = frame_tag
+					poseKey = "_".join ([str(blurName),str(poseName), str(frame), "pose" ])
+					self.dicTag [poseKey] = pose_tag
+					frameItem.setData (0, QtCore.Qt.UserRole, frameKey) 
+					frameItem.setData (1, QtCore.Qt.UserRole, poseKey) 
 
 				for frame, frameItem in sorted (toAdd) :
 					self.uiAllFramesTW.addTopLevelItem (frameItem)				
@@ -301,11 +313,13 @@ class StoreXml(QDialog):
 
 		self.setWindowFlags (QtCore.Qt.Tool|QtCore.Qt.WindowStaysOnTopHint )
 		self.setWindowTitle ("Store xml file")		
-		self.uiAllFramesTW.setSelectionMode( QtGui.QAbstractItemView.ExtendedSelection) 
+		self.uiAllFramesTW.setSelectionMode( QtWidgets.QAbstractItemView.ExtendedSelection) 
 		self.uiAllFramesTW.setAlternatingRowColors(True)
 
 		self.uiDoStoreBTN.clicked.connect ( self.buttonAction )
+		
+		self.uiXmlStoreFile = filepickerwidget.FilePickerWidget (self)
+		self.botLay.insertWidget (0,self.uiXmlStoreFile)
 		self.uiXmlStoreFile.filenameChanged.connect (self.fileIsPicked)
-
 		#filenameChanged
 

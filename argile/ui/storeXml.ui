@@ -6,16 +6,19 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>445</width>
-    <height>285</height>
+    <width>674</width>
+    <height>488</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Dialog</string>
   </property>
-  <layout class="QGridLayout" name="gridLayout">
-   <item row="0" column="0" colspan="2">
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
     <widget class="QTreeWidget" name="uiAllFramesTW">
+     <attribute name="headerVisible">
+      <bool>true</bool>
+     </attribute>
      <attribute name="headerVisible">
       <bool>true</bool>
      </attribute>
@@ -26,38 +29,19 @@
      </column>
     </widget>
    </item>
-   <item row="1" column="0">
-    <widget class="FilePickerWidget" name="uiXmlStoreFile">
-     <property name="pyCaption" stdset="0">
-      <string>Store xml...</string>
-     </property>
-     <property name="pyFilters" stdset="0">
-      <string>XML Files (*.xml)</string>
-     </property>
-     <property name="pyPickFolder" stdset="0">
-      <bool>false</bool>
-     </property>
-     <property name="pyOpenFile" stdset="0">
-      <bool>false</bool>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="1">
-    <widget class="QPushButton" name="uiDoStoreBTN">
-     <property name="text">
-      <string>Store Xml</string>
-     </property>
-    </widget>
+   <item>
+    <layout class="QHBoxLayout" name="botLay">
+     <item>
+      <widget class="QPushButton" name="uiDoStoreBTN">
+       <property name="text">
+        <string>Store Xml</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </item>
   </layout>
  </widget>
- <customwidgets>
-  <customwidget>
-   <class>FilePickerWidget</class>
-   <extends>QWidget</extends>
-   <header>blurdev.gui.widgets.filepickerwidget</header>
-  </customwidget>
- </customwidgets>
  <resources/>
  <connections/>
 </ui>
