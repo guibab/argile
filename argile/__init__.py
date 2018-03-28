@@ -21,17 +21,36 @@ def loadPluginCpp ():
 	if mayaVersion in dicVersionPth : 
 		if cmds.pluginInfo("blurPostDeform", q=True, loaded=True) : 
 			return True
-		plugPath = os.path.join ( uiFolder, "pluginCPP", dicVersionPth[mayaVersion],"blurPostDeform.mll")
-		return cmds.loadPlugin(plugPath) 
+		try :
+			cmds.loadPlugin("blurPostDeform") 
+			return True
+		except : 
+			plugPath = os.path.join ( uiFolder, "pluginCPP", dicVersionPth[mayaVersion],"blurPostDeform.mll")
+			return cmds.loadPlugin(plugPath) 
 	else : 
 		cmds.error( "No plugin for maya version ", mayaVersion , " \nFAIL")
 	return False
+
+def getQTObject (mayaWindow): 
+	from maya import cmds
+	if not cmds.window("tmpWidgetsWindow", q=True,ex=True) :
+		cmds.window ("tmpWidgetsWindow")    
+		cmds.formLayout("qtLayoutObjects")
+	for ind, el in enumerate (mayaWindow.children()):
+		try : 
+			title =el.windowTitle ()
+			if title == "tmpWidgetsWindow" :
+				break
+		except : 
+			continue
+	return el
 	
 def runArgileDeformUI():
 	from .argile import ArgileDeformDialog
 	from maya.cmds import optionVar
 	if loadPluginCpp () : 
-		rootWin = ArgileDeformDialog (rootWindow())		
+		mayaWin  = rootWindow()
+		rootWin = ArgileDeformDialog (mayaWin, getQTObject(mayaWin))
 		rootWin.show()
 
 		vals = optionVar (q="argileDeformWindow")

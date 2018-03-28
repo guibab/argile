@@ -15,6 +15,7 @@
 
 #from studio.gui.resource import Icons
 from Qt import QtGui, QtCore, QtWidgets, QtCompat
+
 from Qt.QtWidgets import QDialog
 
 from . import extraWidgets, argileAddPose, storeXml
@@ -89,6 +90,7 @@ def orderMelList (listInd, onlyStr=True):
 
 class ArgileDeformDialog(QDialog):
 	addTimeLine = True
+	addSpinWidget = False
 
 	currentBlurNode = ""
 	currentGeom = ""
@@ -488,12 +490,28 @@ class ArgileDeformDialog(QDialog):
 						listFramesViewPort.append ((deformFrame, False))
 
 					self.uiFramesTW.addTopLevelItem (frameItem)
-					newWidgetGain = extraWidgets.spinnerWidget (self.currentPose+".deformations[{0}].gain".format (logicalFrameIndex), singleStep = 0.1, precision = 2)			
+					if self.addSpinWidget : 
+						newWidgetGain = extraWidgets.spinnerWidget (self.currentPose+".deformations[{0}].gain".format (logicalFrameIndex), singleStep = 0.1, precision = 2, theWindowForQtObjects = self.theWindowForQtObjects)			
+						newWidgetOffset = extraWidgets.spinnerWidget (self.currentPose+".deformations[{0}].offset".format (logicalFrameIndex), singleStep = 0.1, precision = 2, theWindowForQtObjects = self.theWindowForQtObjects)			
+					else : 
+						#newWidgetGain = extraWidgets.spinnerWidget2 (self.currentPose+".deformations[{0}].gain".format (logicalFrameIndex), singleStep = 0.1, precision = 2)			
+						#newWidgetOffset = extraWidgets.spinnerWidget2 (self.currentPose+".deformations[{0}].offset".format (logicalFrameIndex), singleStep = 0.1, precision = 2)			
+						
+						gainAtt = self.currentPose+".deformations[{0}].gain".format (logicalFrameIndex)
+						newWidgetGain = QtWidgets.QDoubleSpinBox (self)
+						newWidgetGain.setValue (cmds.getAttr (gainAtt))
+						offsetAtt = self.currentPose+".deformations[{0}].offset".format (logicalFrameIndex)						
+						newWidgetOffset = QtWidgets.QDoubleSpinBox (self)
+						newWidgetOffset.setValue (cmds.getAttr (offsetAtt))		
+						
+						newWidgetOffset.valueChanged.connect (partial (self.spinnerValueChanged,offsetAtt) )
+						newWidgetGain.valueChanged.connect (partial (self.spinnerValueChanged,gainAtt) )
+
+						
 					newWidgetGain.setMinimumHeight (20)
-					newWidgetOffset = extraWidgets.spinnerWidget (self.currentPose+".deformations[{0}].offset".format (logicalFrameIndex), singleStep = 0.1, precision = 2)			
 					self.uiFramesTW.setItemWidget (frameItem,2,newWidgetGain)
 					self.uiFramesTW.setItemWidget (frameItem,3,newWidgetOffset)
-
+	
 			if self.addTimeLine : self. addKeyToTimePort (listFramesViewPort)
 			
 			vh = self.uiFramesTW.header ()
@@ -526,7 +544,11 @@ class ArgileDeformDialog(QDialog):
 
 #        vv.setResizeMode(QtWidgets.QHeaderView.Stretch)
 
-
+	def spinnerValueChanged (self, theAttr, newVal) : 
+		if cmds.objExists (theAttr) :
+			cmds.setAttr (theAttr, newVal)
+		#print theAttr, newVal
+		
 	def refreshListPoses (self, selectLast =False) : 
 		with extraWidgets.toggleBlockSignals ([self.uiPosesTW]) :
 
@@ -566,10 +588,24 @@ class ArgileDeformDialog(QDialog):
 				self.uiPosesTW.addTopLevelItem (channelItem)
 				# store for delation
 				channelItem.setData (0, QtCore.Qt.UserRole, "{blurNode}.poses[{indPose}]".format (**dicVal)) 
+				if self.addSpinWidget :
+					newWidgetGain = extraWidgets.spinnerWidget ("{blurNode}.poses[{indPose}].poseGain".format (**dicVal), singleStep = 0.1, precision = 2, theWindowForQtObjects = self.theWindowForQtObjects)			
+					newWidgetOffset = extraWidgets.spinnerWidget ("{blurNode}.poses[{indPose}].poseOffset".format (**dicVal), singleStep = 0.1, precision = 2, theWindowForQtObjects = self.theWindowForQtObjects)			
+				else : 
+					#newWidgetGain = extraWidgets.spinnerWidget2 ("{blurNode}.poses[{indPose}].poseGain".format (**dicVal), singleStep = 0.1, precision = 2)			
+					#newWidgetOffset = extraWidgets.spinnerWidget2 ("{blurNode}.poses[{indPose}].poseOffset".format (**dicVal), singleStep = 0.1, precision = 2)			
+					gainAtt = "{blurNode}.poses[{indPose}].poseGain".format (**dicVal)
+					newWidgetGain = QtWidgets.QDoubleSpinBox (self)
+					newWidgetGain.setValue (cmds.getAttr (gainAtt))
+					offsetAtt = "{blurNode}.poses[{indPose}].poseOffset".format (**dicVal)
+					newWidgetOffset = QtWidgets.QDoubleSpinBox (self)
+					newWidgetOffset.setValue (cmds.getAttr (offsetAtt))		
 
-				newWidgetGain = extraWidgets.spinnerWidget ("{blurNode}.poses[{indPose}].poseGain".format (**dicVal), singleStep = 0.1, precision = 2)			
+					newWidgetOffset.valueChanged.connect (partial (self.spinnerValueChanged,offsetAtt) )
+					newWidgetGain.valueChanged.connect (partial (self.spinnerValueChanged,gainAtt) )
+
+					
 				newWidgetGain.setMinimumHeight (20)
-				newWidgetOffset = extraWidgets.spinnerWidget ("{blurNode}.poses[{indPose}].poseOffset".format (**dicVal), singleStep = 0.1, precision = 2)			
 				self.uiPosesTW.setItemWidget (channelItem,1,newWidgetGain)
 				self.uiPosesTW.setItemWidget (channelItem,2,newWidgetOffset)
 
@@ -979,7 +1015,7 @@ class ArgileDeformDialog(QDialog):
 
 		return blurNode_tag
 
-	def backUp (self):
+	def backUp (self, withBlendShape = True):
 		blurGrp = cmds.createNode ("transform", n="{0}_".format (self.currentBlurNode))
 		listPoses = cmds.blurSculpt (self.currentBlurNode,query = True, listPoses=True)        
 		if not listPoses : return
@@ -989,6 +1025,7 @@ class ArgileDeformDialog(QDialog):
 
 		# first store positions
 		storedStates = {}
+		createdShapes = []
 		for logicalInd in posesIndices:			
 			dicVal ["indPose"] = logicalInd
 			poseAttr = "{blurNode}.poses[{indPose}].poseEnabled".format (**dicVal)
@@ -1072,11 +1109,22 @@ class ArgileDeformDialog(QDialog):
 				cmds.currentTime (frame)
 
 				frameName = "{0}_{1}_f{2}_".format (self.currentBlurNode, thePose, int(frame))
+				if withBlendShape : 
+					deform,  = cmds.duplicate (self.currentGeom, name = "deform")
+					cmds.setAttr (self.currentBlurNode+".envelope", 0) 
+					frameDup,  = cmds.duplicate (self.currentGeom, name = frameName)
+					cmds.setAttr (self.currentBlurNode+".envelope", 1) 
+					newBS ,= cmds.blendShape ( deform,frameDup)
+					cmds.setAttr (newBS+".w[0]",1)
+					cmds.delete(cmds.ls (cmds.listHistory (newBS), type = "tweak"))
+					cmds.delete (deform)
+				else : 
+					frameDup,  = cmds.duplicate (self.currentGeom, name = frameName)
 
-				frameDup,  = cmds.duplicate (self.currentGeom, name = frameName)
 				frameDup = cmds.parent (frameDup, thePoseGrp)
 				cmds.hide (frameDup)
 				frameDup = str (frameDup[0])
+				createdShapes.append (frameDup)
 				# add attributes -------------------------------------------------------------------------------------
 				
 				for att in ["gain", "offset", "frameEnabled"] : 
@@ -1092,10 +1140,11 @@ class ArgileDeformDialog(QDialog):
 					inConn = cmds.listConnections (realAtt, s=True, d=False, c=True, scn=False)
 					if inConn : cmds.connectAttr (inConn[0], frameDup+"."+att)
 
-
 		# restoreVals
 		for attr, val in storedStates.items() : cmds.setAttr (attr, val)
 
+		return createdShapes
+		
 	def restoreBackUp (self):
 		selectedGeometries = [el for el in cmds.ls (sl=True, tr=True, l=True) if cmds.listRelatives (el, type="mesh")]
 		if not  selectedGeometries : 
@@ -1263,15 +1312,14 @@ class ArgileDeformDialog(QDialog):
 		self.saveXmlWin.setUpFilePicker (store=False)
 		
 	#------------------- INIT ----------------------------------------------------
-	def __init__(self, parent=None):
+	def __init__(self, parent, theWindowForQtObjects):
 		super(ArgileDeformDialog, self).__init__(parent)
-
+		self.theWindowForQtObjects = theWindowForQtObjects
 		if cmds.optionVar (exists = "argileScluptOffset") : 
 			self.offset = cmds.optionVar ( q="argileScluptOffset") 
 		else : 
 			self.offset = 0.001
 
-		
 		# load the ui
 		#import __main__
 		QtCompat.loadUi(getUiFile(__file__), self)
@@ -1351,8 +1399,7 @@ class ArgileDeformDialog(QDialog):
 		self.uiBlurNodesTW.currentItemChanged.connect (self.changedSelection)		
 		self.uiFramesTW.itemChanged.connect (self.changeTheFrame)
 
-		self.uiFramesTW.itemSelectionChanged.connect (self.selectFrameInTimeLine)
-		
+		self.uiFramesTW.itemSelectionChanged.connect (self.selectFrameInTimeLine)		
 
 	def selectProximityKey (self) : 
 		currTime = cmds.currentTime (q=True)

@@ -1,23 +1,21 @@
 from maya import cmds
 from Qt import QtGui, QtCore, QtWidgets, QtCompat
 from utils import toPyObject, getUiFile
-from . import rootWindow
+from maya import OpenMayaUI
 
+def toQt(mayaName, QtClass):
+    """
+    Given the name of a Maya UI element of any type, return the corresponding QWidget or QAction.
+    If the object does not exist, returns None
+    """
+    ptr = OpenMayaUI.MQtUtil.findControl(mayaName)
+    if ptr is None:
+        ptr = OpenMayaUI.MQtUtil.findLayout(mayaName)
+        if ptr is None:
+            ptr = OpenMayaUI.MQtUtil.findMenuItem(mayaName)
+    if ptr is not None:
+        return QtCompat.wrapInstance(long(ptr), QtClass)
 
-# create a QtObject for not using  sip.wrapinstance too much
-def getQTObject (): 
-	if not cmds.window("tmpWidgetsWindow", q=True,ex=True) :
-		cmds.window ("tmpWidgetsWindow")    
-		cmds.formLayout("qtLayoutObjects")
-	mayaWindow =  rootWindow ()        
-	for ind, el in enumerate (mayaWindow.children()):
-		try : 
-			title =el.windowTitle ()
-			if title == "tmpWidgetsWindow" :
-				break
-		except : 
-			continue
-	return el
 
 class toggleBlockSignals(object):
 	def __init__(self, listWidgets, raise_error=True):
@@ -31,7 +29,7 @@ class toggleBlockSignals(object):
 			widg.blockSignals (False)
 
 # spinner connected to an attribute
-class spinnerWidget(QtWidgets.QWidget):
+class OLDspinnerWidget(QtWidgets.QWidget):
 
 	def offsetSpin_mousePressEvent ( self,event):
 		if cmds.objExists (self.theAttr) : 
@@ -50,12 +48,12 @@ class spinnerWidget(QtWidgets.QWidget):
 			cmds.setAttr (self.theAttr, newVal)
 
 	def createWidget (self,singleStep = .1, precision = 2) :        
-		theWindowForQtObjects = getQTObject ()
-
+		#theWindowForQtObjects = getQTObject ()
 		cmds.setParent ("tmpWidgetsWindow|qtLayoutObjects")
 		self.floatField = cmds.floatField(  pre=precision , step = singleStep)
-
-		self.theQtObject = theWindowForQtObjects .children() [-1]  
+		#QtCompat.wrapInstance (self.floatField,QtWidgets.QWidget )
+		self.theQtObject = toQt (self.floatField,QtWidgets.QWidget)
+		#self.theQtObject = self.theWindowForQtObjects .children() [-1]  
 		"""
 		if qtLayoutObject :
 			self.theQtObject = qtLayoutObject
@@ -100,7 +98,8 @@ class spinnerWidget(QtWidgets.QWidget):
 		wdth = self.theSpinner.lineEdit().width () + 3
 		self.theQtObject.resize  (wdth, self.height() )
 
-	def __init__ (self, theAttr, singleStep = .1, precision = 2):
+	def __init__ (self, theAttr, singleStep = .1, precision = 2, theWindowForQtObjects=None):
+		self.theWindowForQtObjects = theWindowForQtObjects
 		super(spinnerWidget, self).__init__ ()   
 		self.theAttr = theAttr
 		self.theSpinner = QtWidgets.QDoubleSpinBox (self)
@@ -113,8 +112,26 @@ class spinnerWidget(QtWidgets.QWidget):
 		self.createWidget ( singleStep=singleStep, precision =precision)  
 		self.doConnectAttrSpinner (theAttr)   
 
+class spinnerWidget2(QtWidgets.QDoubleSpinBox):
+	
+	def updateValToAttr (self) : 
+		if cmds.objExists (self.theAttr) :
+			self.setValue (cmds.getAttr (self.theAttr))
+			
+	def doValueChanged (self, newVal) :			
+		if cmds.objExists (self.theAttr) :
+			cmds.setAttr (self.theAttr, newVal)
+			print self.theAttr, newVal
+	
+	def __init__ (self, theAttr, singleStep = .1, precision = 2):
+		super(spinnerWidget2 , self).__init__(None)        
+		self.theAttr = theAttr
+		self.setSingleStep (singleStep)        
+		self.setDecimals(precision)
+		self.updateValToAttr ()
+		self.valueChanged.connect (self.doValueChanged)
 
-
+# spinner connected to an attribute
 
 class KeyFrameBtn (QtWidgets.QPushButton):
 	_colors = {
@@ -343,7 +360,8 @@ class TheTimeSlider (QtWidgets.QWidget):
 		#self.theTimePort = timePort.theTimePort
 		#self.mayaMainWindow = timePort.mayaWindowLayout        
 
-		theWindowForQtObjects = getQTObject ()
+		#theWindowForQtObjects = getQTObject ()
+		theWindowForQtObjects = self.mainWindow.theWindowForQtObjects
 		cmds.setParent ("tmpWidgetsWindow|qtLayoutObjects")        
 		# cmds.setParent ("MayaWindow|formLayout1|qtLayoutObjects")
 		cmdsTimePort = cmds.timePort( 'skinFixingTimePort', w=10, h=20, snap=True, globalTime=True,enableBackground=True, bgc = [.5,.5,.6])
